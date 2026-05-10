@@ -1,13 +1,1 @@
-import type { DashboardInsight } from "@/lib/insights/types";
-
-export const FALLBACK_INSIGHTS: DashboardInsight[] = [
-  {
-    id: "fallback-empty",
-    kind: "spending_awareness",
-    tone: "tip",
-    problem: "Belum ada cukup data untuk insight personal.",
-    impact: "Catat beberapa pengeluaran dulu — pola akan terlihat di sini.",
-    action: "Tambah pengeluaran",
-    quickAction: "fix",
-  },
-];
+export { FALLBACK_INSIGHTS } from "@/domain/insights/fallback";

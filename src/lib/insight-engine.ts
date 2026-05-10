@@ -1,5 +1,5 @@
-/** Re-export — logika ada di `@/lib/insights`. */
+/** Re-export — logika ada di `@/domain/insights`. */
 export {
   generateFinlyInsights,
   type FinlyInsightEngineInput,
-} from "@/lib/insights";
+} from "@/domain/insights";

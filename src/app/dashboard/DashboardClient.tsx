@@ -18,7 +18,7 @@ import {
   TransactionsCard,
   type QuickActionId,
 } from "@/components/dashboard";
-import type { DashboardSummary } from "@/lib/dashboard/summary";
+import type { DashboardSummary } from "@/application/dashboard/dashboard-summary.types";
 import { FALLBACK_INSIGHTS } from "@/lib/insights/fallback";
 import { toast } from "@/lib/hooks/use-toast";
 import { useDashboardUiStore } from "@/store/dashboard-store";
