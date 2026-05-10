@@ -9,6 +9,7 @@ import {
   BalanceCard,
   CoachInsight,
   MiniSimulator,
+  FinancialHealthCard,
   MonthlySnapshotCard,
   NotificationsSheet,
   ProgressToday,
@@ -19,26 +20,81 @@ import {
   type QuickActionId,
 } from "@/components/dashboard";
 import type { DashboardSummary } from "@/application/dashboard/dashboard-summary.types";
+import {
+  projectFinancialHealthWithSimulator,
+} from "@/lib/finance";
 import { FALLBACK_INSIGHTS } from "@/lib/insights/fallback";
+import type { FinlyNotification } from "@/lib/notifications/types";
+import { computeMiniSimulator } from "@/lib/simulator/mini-simulator-model";
 import { toast } from "@/lib/hooks/use-toast";
 import { useDashboardUiStore } from "@/store/dashboard-store";
 
 import { QUICK_ACTION_FEEDBACK_COPY } from "./quickAction.copy";
+
+function isUrgentDashboardNotification(n: FinlyNotification): boolean {
+  return n.priorityScore >= 90 || n.kind === "critical";
+}
 
 export function DashboardClient({
   summary,
 }: Readonly<{ summary: DashboardSummary }>) {
   const notifOpen = useDashboardUiStore((s) => s.notifOpen);
   const setNotifOpen = useDashboardUiStore((s) => s.setNotifOpen);
+  const simulatorFoodCutPct = useDashboardUiStore(
+    (s) => s.simulatorFoodCutPct,
+  );
+  const simulatorSavePlusPct = useDashboardUiStore(
+    (s) => s.simulatorSavePlusPct,
+  );
   const router = useRouter();
 
   const insightsToShow =
     summary.insights.length > 0 ? summary.insights : FALLBACK_INSIGHTS;
 
-  const dailyBurnEstimate = Math.max(
-    1,
-    Math.round(summary.spentThisMonth / Math.max(1, summary.dayOfMonth)),
+  const dailyBurnForSimulator = Math.max(1, Math.round(summary.dailyBurn));
+
+  const simulatorMetrics = React.useMemo(
+    () =>
+      computeMiniSimulator({
+        balance: summary.balance,
+        dailyBurn: dailyBurnForSimulator,
+        foodCutPct: simulatorFoodCutPct,
+        savePlusPct: simulatorSavePlusPct,
+        monthlyIncome: summary.monthlyIncome,
+        foodShare: summary.simulatorFoodShare,
+        daysInMonth: summary.daysInMonth,
+      }),
+    [
+      summary.balance,
+      summary.daysInMonth,
+      summary.monthlyIncome,
+      summary.simulatorFoodShare,
+      dailyBurnForSimulator,
+      simulatorFoodCutPct,
+      simulatorSavePlusPct,
+    ],
   );
+
+  const financialHealthLive = React.useMemo(
+    () =>
+      projectFinancialHealthWithSimulator({
+        baseline: summary.financialHealth,
+        monthlyIncome: summary.monthlyIncome,
+        foodCutPct: simulatorFoodCutPct,
+        savePlusPct: simulatorSavePlusPct,
+        metrics: simulatorMetrics,
+      }),
+    [
+      summary.financialHealth,
+      summary.monthlyIncome,
+      simulatorFoodCutPct,
+      simulatorSavePlusPct,
+      simulatorMetrics,
+    ],
+  );
+
+  const simulatorActive =
+    simulatorFoodCutPct > 0 || simulatorSavePlusPct > 0;
 
   const handleQuickAction = (action: QuickActionId) => {
     const copy = QUICK_ACTION_FEEDBACK_COPY[action];
@@ -49,22 +105,23 @@ export function DashboardClient({
   };
 
   const highNotificationCount = summary.notifications.filter(
-    (n) => n.priority === "high",
+    isUrgentDashboardNotification,
   ).length;
 
   React.useEffect(() => {
-    const firstHigh = summary.notifications.find(
-      (n) => n.priority === "high",
-    );
-    if (!firstHigh || typeof window === "undefined") return;
-    const key = `finly-toast-notif-${firstHigh.insightId}`;
+    const firstUrgent =
+      summary.notifications.find(isUrgentDashboardNotification);
+    if (!firstUrgent || typeof window === "undefined") return;
+    const key = `finly-toast-notif-${firstUrgent.insightId}`;
     if (sessionStorage.getItem(key)) return;
     sessionStorage.setItem(key, "1");
     toast({
-      title: firstHigh.title,
-      description: firstHigh.body,
+      title: firstUrgent.title,
+      description: firstUrgent.body,
       variant:
-        firstHigh.kind === "warning" ? "destructive" : "default",
+        firstUrgent.kind === "critical" || firstUrgent.kind === "warning"
+          ? "destructive"
+          : "default",
     });
   }, [summary.notifications]);
 
@@ -135,6 +192,18 @@ export function DashboardClient({
               daysLeft={summary.daysLeftInMonth}
               daysInMonth={summary.daysInMonth}
               dayOfMonth={summary.dayOfMonth}
+            />
+          </motion.div>
+
+          <motion.div
+            variants={{
+              hidden: { opacity: 0, y: 10 },
+              show: { opacity: 1, y: 0 },
+            }}
+          >
+            <FinancialHealthCard
+              financialHealth={financialHealthLive}
+              simulationActive={simulatorActive}
             />
           </motion.div>
 
@@ -245,11 +314,12 @@ export function DashboardClient({
           >
             <MiniSimulator
               currentBalance={summary.balance}
-              dailyBurn={dailyBurnEstimate}
+              dailyBurn={dailyBurnForSimulator}
               daysLeft={summary.daysLeftInMonth}
               daysInMonth={summary.daysInMonth}
               monthlyIncome={summary.monthlyIncome}
               foodShareOfSpend={summary.simulatorFoodShare}
+              precomputedMetrics={simulatorMetrics}
               onApply={() =>
                 toast({
                   title: "Rencana disimpan",

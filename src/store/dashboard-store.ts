@@ -12,10 +12,10 @@ type DashboardUiStore = {
 export const useDashboardUiStore = create<DashboardUiStore>((set) => ({
   notifOpen: false,
   setNotifOpen: (notifOpen) => set({ notifOpen }),
-  simulatorFoodCutPct: 20,
+  simulatorFoodCutPct: 0,
   setSimulatorFoodCutPct: (simulatorFoodCutPct) =>
     set({ simulatorFoodCutPct }),
-  simulatorSavePlusPct: 10,
+  simulatorSavePlusPct: 0,
   setSimulatorSavePlusPct: (simulatorSavePlusPct) =>
     set({ simulatorSavePlusPct }),
 }));

@@ -18,6 +18,33 @@ export type DashboardLatestTransactionRow = Readonly<{
   createdAt: Date;
 }>;
 
+/** Baris minimal untuk engine pola pengeluaran (tanpa note/id). */
+export type PatternDetectionTxRow = Readonly<{
+  amount: number;
+  category: string;
+  createdAt: Date;
+}>;
+
+/** Riwayat cukup panjang untuk streak/volatilitas walau awal bulan (floor dengan bulan berjalan). */
+export async function fetchTransactionsForPatternDetection(
+  now: Date,
+): Promise<PatternDetectionTxRow[]> {
+  const monthStart = startOfCalendarMonth(now);
+  const fourteenDaysAgo = new Date(now);
+  fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+  const since = new Date(
+    Math.min(monthStart.getTime(), fourteenDaysAgo.getTime()),
+  );
+
+  const rows = await prisma.transaction.findMany({
+    where: { createdAt: { gte: since, lte: now } },
+    select: { amount: true, category: true, createdAt: true },
+    orderBy: { createdAt: "asc" },
+  });
+
+  return rows;
+}
+
 /** Bundle agregat + baris mentah untuk `getDashboardSummary` (tanpa formula bisnis). */
 export type DashboardAggregateBundle = Readonly<{
   totalSpending: number;

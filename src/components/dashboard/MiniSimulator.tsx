@@ -5,6 +5,7 @@ import { ArrowRight, Sparkles } from "lucide-react";
 
 import { Slider } from "@/components/ui/slider";
 import { formatIDRFull } from "@/lib/finance";
+import type { MiniSimulatorComputed } from "@/lib/simulator/mini-simulator-model";
 import { computeMiniSimulator } from "@/lib/simulator/mini-simulator-model";
 import { cn } from "@/lib/utils";
 import { useDashboardUiStore } from "@/store/dashboard-store";
@@ -20,6 +21,8 @@ export type MiniSimulatorProps = Readonly<{
   monthlyIncome?: number;
   /** Share makan terhadap pengeluaran bulan ini (0–1), dari server. */
   foodShareOfSpend?: number;
+  /** Jika diisi, hindari menghitung ulang (sinkron dengan parent, mis. health card). */
+  precomputedMetrics?: MiniSimulatorComputed;
   onApply?: () => void;
 }>;
 
@@ -31,6 +34,7 @@ export function MiniSimulator({
   daysInMonth = 30,
   monthlyIncome = 9_500_000,
   foodShareOfSpend = 0.32,
+  precomputedMetrics,
   onApply,
 }: MiniSimulatorProps) {
   const foodCut = useDashboardUiStore((s) => s.simulatorFoodCutPct);
@@ -40,15 +44,17 @@ export function MiniSimulator({
   const fillGradientId = `simFill-${React.useId().replace(/:/g, "")}`;
 
   const sim = React.useMemo(() => {
-    const metrics = computeMiniSimulator({
-      balance: currentBalance,
-      dailyBurn,
-      foodCutPct: foodCut,
-      savePlusPct: savePlus,
-      monthlyIncome,
-      foodShare: foodShareOfSpend,
-      daysInMonth,
-    });
+    const metrics =
+      precomputedMetrics ??
+      computeMiniSimulator({
+        balance: currentBalance,
+        dailyBurn,
+        foodCutPct: foodCut,
+        savePlusPct: savePlus,
+        monthlyIncome,
+        foodShare: foodShareOfSpend,
+        daysInMonth,
+      });
 
     const newBurn = metrics.newDailyBurn;
     const w = 320;
@@ -91,6 +97,7 @@ export function MiniSimulator({
     daysInMonth,
     monthlyIncome,
     foodShareOfSpend,
+    precomputedMetrics,
   ]);
 
   const { metrics } = sim;
