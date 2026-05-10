@@ -6,6 +6,7 @@ import { ArrowRight, Sparkles } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { formatIDRFull } from "@/lib/finance";
 import { cn } from "@/lib/utils";
+import { useDashboardUiStore } from "@/store/dashboard-store";
 
 import { CardShell } from "./CardShell";
 
@@ -26,8 +27,10 @@ export function MiniSimulator({
   monthlyIncome = 9_500_000,
   onApply,
 }: MiniSimulatorProps) {
-  const [foodCut, setFoodCut] = React.useState(20);
-  const [savePlus, setSavePlus] = React.useState(10);
+  const foodCut = useDashboardUiStore((s) => s.simulatorFoodCutPct);
+  const setFoodCut = useDashboardUiStore((s) => s.setSimulatorFoodCutPct);
+  const savePlus = useDashboardUiStore((s) => s.simulatorSavePlusPct);
+  const setSavePlus = useDashboardUiStore((s) => s.setSimulatorSavePlusPct);
   const fillGradientId = `simFill-${React.useId().replace(/:/g, "")}`;
 
   const sim = React.useMemo(() => {

@@ -4,7 +4,11 @@ export type InsightCoachTone = "warning" | "tip" | "win" | "urgent";
 /** Selaras dengan `QuickActionId` di dashboard (toast stub). */
 export type InsightQuickActionId = "auto-save" | "set-limit" | "challenge" | "fix";
 
-export type InsightKind = "warning" | "encouragement" | "feedback";
+export type InsightKind =
+  | "warning"
+  | "encouragement"
+  | "spending_awareness"
+  | "behavioral_feedback";
 
 /** Satu kartu insight siap render sebagai `CoachInsight`. */
 export type DashboardInsight = Readonly<{

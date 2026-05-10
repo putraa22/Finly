@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -16,56 +15,18 @@ import {
   SpendingBreakdown,
   TransactionsCard,
   type QuickActionId,
-  type SpendingBreakdownItem,
 } from "@/components/dashboard";
 import type { DashboardSummary } from "@/lib/dashboard/summary";
 import type { DashboardInsight } from "@/lib/insights/types";
 import { toast } from "@/lib/hooks/use-toast";
+import { useDashboardUiStore } from "@/store/dashboard-store";
 
 import { QUICK_ACTION_FEEDBACK_COPY } from "./quickAction.copy";
-
-const SPENDING_BREAKDOWN_DEMO: SpendingBreakdownItem[] = [
-  {
-    categoryId: "food",
-    amount: 1_850_000,
-    trend: 12,
-    flag: "problem",
-  },
-  {
-    categoryId: "transport",
-    amount: 720_000,
-    trend: -5,
-    flag: null,
-  },
-  {
-    categoryId: "shopping",
-    amount: 540_000,
-    trend: -2,
-    flag: "good",
-  },
-  {
-    categoryId: "bills",
-    amount: 380_000,
-    trend: 0,
-    flag: null,
-  },
-  {
-    categoryId: "health",
-    amount: 210_000,
-    trend: 3,
-    flag: null,
-  },
-];
-
-const SPENDING_BREAKDOWN_TOTAL = SPENDING_BREAKDOWN_DEMO.reduce(
-  (s, x) => s + x.amount,
-  0,
-);
 
 const FALLBACK_INSIGHTS: DashboardInsight[] = [
   {
     id: "fallback-empty",
-    kind: "feedback",
+    kind: "spending_awareness",
     tone: "tip",
     problem: "Belum ada cukup data untuk insight personal.",
     impact: "Catat beberapa pengeluaran dulu — pola akan terlihat di sini.",
@@ -77,11 +38,17 @@ const FALLBACK_INSIGHTS: DashboardInsight[] = [
 export function DashboardClient({
   summary,
 }: Readonly<{ summary: DashboardSummary }>) {
-  const [notifOpen, setNotifOpen] = React.useState(false);
+  const notifOpen = useDashboardUiStore((s) => s.notifOpen);
+  const setNotifOpen = useDashboardUiStore((s) => s.setNotifOpen);
   const router = useRouter();
 
   const insightsToShow =
     summary.insights.length > 0 ? summary.insights : FALLBACK_INSIGHTS;
+
+  const dailyBurnEstimate = Math.max(
+    1,
+    Math.round(summary.spentThisMonth / Math.max(1, summary.dayOfMonth)),
+  );
 
   const handleQuickAction = (action: QuickActionId) => {
     const copy = QUICK_ACTION_FEEDBACK_COPY[action];
@@ -146,6 +113,10 @@ export function DashboardClient({
               balance={summary.balance}
               income={summary.monthlyIncome}
               spent={summary.spentThisMonth}
+              totalSpendingAllTime={summary.totalSpending}
+              daysLeft={summary.daysLeftInMonth}
+              daysInMonth={summary.daysInMonth}
+              dayOfMonth={summary.dayOfMonth}
             />
           </motion.div>
 
@@ -185,7 +156,9 @@ export function DashboardClient({
                       ? "Peringatan"
                       : insight.kind === "encouragement"
                         ? "Semangat"
-                        : "Feedback pintar";
+                        : insight.kind === "spending_awareness"
+                          ? "Kesadaran pengeluaran"
+                          : "Feedback perilaku";
 
                   return (
                     <div key={insight.id} className="space-y-2">
@@ -222,7 +195,10 @@ export function DashboardClient({
               show: { opacity: 1, y: 0 },
             }}
           >
-            <ProgressToday />
+            <ProgressToday
+              spentToday={summary.spentToday}
+              dailyLimit={summary.dailyLimit}
+            />
           </motion.div>
 
           <motion.div
@@ -241,10 +217,10 @@ export function DashboardClient({
             }}
           >
             <MiniSimulator
-              currentBalance={3_680_000}
-              dailyBurn={205_000}
-              daysLeft={18}
-              monthlyIncome={9_500_000}
+              currentBalance={summary.balance}
+              dailyBurn={dailyBurnEstimate}
+              daysLeft={summary.daysLeftInMonth}
+              monthlyIncome={summary.monthlyIncome}
               onApply={() =>
                 toast({
                   title: "Rencana disimpan",
@@ -261,8 +237,8 @@ export function DashboardClient({
             }}
           >
             <SpendingBreakdown
-              items={SPENDING_BREAKDOWN_DEMO}
-              total={SPENDING_BREAKDOWN_TOTAL}
+              items={summary.spendingBreakdownItems}
+              total={summary.spentThisMonth}
               onDetail={() => router.push("/insights")}
             />
           </motion.div>
@@ -273,7 +249,10 @@ export function DashboardClient({
               show: { opacity: 1, y: 0 },
             }}
           >
-            <TransactionsCard transactions={summary.latestTransactions} />
+            <TransactionsCard
+              transactions={summary.latestTransactions}
+              onViewAll={() => router.push("/transactions")}
+            />
           </motion.div>
         </motion.div>
       </div>

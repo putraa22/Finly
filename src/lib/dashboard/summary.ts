@@ -1,8 +1,9 @@
 import { CATEGORIES } from "@/lib/finance";
-import { buildInsightsV1 } from "@/lib/insights/engine";
+import { generateFinlyInsights } from "@/lib/insight-engine";
 import type { DashboardInsight } from "@/lib/insights/types";
 import { prisma } from "@/lib/prisma";
 
+import type { SpendingBreakdownItem } from "@/components/dashboard/SpendingBreakdown";
 import type { DashboardRecentTransaction } from "@/components/dashboard/dashboard.types";
 
 export type DashboardSummary = {
@@ -17,6 +18,13 @@ export type DashboardSummary = {
   spentToday: number;
   spentThisWeek: number;
   spentLastWeek: number;
+  /** Hari terhitung di bulan berjalan (untuk rata-rata harian). */
+  dayOfMonth: number;
+  /** Jumlah hari di bulan berjalan. */
+  daysInMonth: number;
+  /** Inklusif hari ini sampai akhir bulan kalender (minimal 1). */
+  daysLeftInMonth: number;
+  spendingBreakdownItems: SpendingBreakdownItem[];
   insights: DashboardInsight[];
   latestTransactions: DashboardRecentTransaction[];
 };
@@ -46,6 +54,17 @@ function startOfMondayWeek(now: Date): Date {
   return copy;
 }
 
+function calendarDaysInMonth(now: Date): number {
+  return new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+}
+
+/** Sisa hari kalender bulan ini, menghitung hari ini (minimal 1). */
+function daysLeftInCalendarMonth(now: Date): number {
+  const lastDay = calendarDaysInMonth(now);
+  const d = now.getDate();
+  return Math.max(1, lastDay - d + 1);
+}
+
 function categoryLabelOrOther(catId: string): string {
   return (
     CATEGORIES.find((c) => c.id === catId)?.label ??
@@ -61,7 +80,11 @@ function formatTransactionTimeId(createdAt: Date): string {
   });
 
   const now = new Date();
-  const t0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const t0 = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+  ).getTime();
   const t1 = new Date(
     createdAt.getFullYear(),
     createdAt.getMonth(),
@@ -71,7 +94,8 @@ function formatTransactionTimeId(createdAt: Date): string {
 
   if (diffDays === 0) return `Hari ini · ${timeStr}`;
   if (diffDays === 1) return `Kemarin · ${timeStr}`;
-  if (diffDays >= 2 && diffDays < 7) return `${diffDays} hari lalu · ${timeStr}`;
+  if (diffDays >= 2 && diffDays < 7)
+    return `${diffDays} hari lalu · ${timeStr}`;
   return `${createdAt.toLocaleDateString("id-ID", { day: "numeric", month: "short" })} · ${timeStr}`;
 }
 
@@ -108,6 +132,8 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     todayAgg,
     thisWeekAgg,
     lastWeekAgg,
+    weekByCategory,
+    monthByCategory,
     rows,
   ] = await Promise.all([
     prisma.transaction.aggregate({ _sum: { amount: true } }),
@@ -132,6 +158,16 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
       },
       _sum: { amount: true },
     }),
+    prisma.transaction.groupBy({
+      by: ["category"],
+      where: { createdAt: { gte: weekStart } },
+      _sum: { amount: true },
+    }),
+    prisma.transaction.groupBy({
+      by: ["category"],
+      where: { createdAt: { gte: monthStart } },
+      _sum: { amount: true },
+    }),
     prisma.transaction.findMany({
       orderBy: { createdAt: "desc" },
       take: 10,
@@ -144,10 +180,12 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
   const spentThisWeek = thisWeekAgg._sum.amount ?? 0;
   const spentLastWeek = lastWeekAgg._sum.amount ?? 0;
 
+  const foodSpendThisWeek =
+    weekByCategory.find((r) => r.category === "food")?._sum.amount ?? 0;
+
   const startingBalance = parseEnvNumber("STARTING_BALANCE", 0);
   const balance = startingBalance - totalSpending;
 
-  /** Default selaras placeholder `ProgressToday` (limit harian demo). */
   const dailyLimit = parseEnvNumber("DAILY_SPENDING_LIMIT", 500_000);
 
   const monthlyIncomeRaw = process.env.MONTHLY_INCOME;
@@ -170,14 +208,24 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
 
   const remainingBudget = monthlyBudget - spentThisMonth;
 
-  const insights = buildInsightsV1({
+  const insights = generateFinlyInsights({
     spentToday,
     spentThisWeek,
     spentLastWeek,
-    spentThisMonth,
     dailyLimit,
-    remainingBudget,
+    foodSpendThisWeek,
   });
+
+  const spendingBreakdownItems: SpendingBreakdownItem[] = monthByCategory
+    .map((r) => ({
+      categoryId: r.category,
+      amount: r._sum.amount ?? 0,
+    }))
+    .filter((item) => item.amount > 0);
+
+  const dayOfMonth = now.getDate();
+  const daysInMonth = calendarDaysInMonth(now);
+  const daysLeftInMonth = daysLeftInCalendarMonth(now);
 
   return {
     balance,
@@ -190,6 +238,10 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     spentToday,
     spentThisWeek,
     spentLastWeek,
+    dayOfMonth,
+    daysInMonth,
+    daysLeftInMonth,
+    spendingBreakdownItems,
     insights,
     latestTransactions: rows.map(mapTransaction),
   };

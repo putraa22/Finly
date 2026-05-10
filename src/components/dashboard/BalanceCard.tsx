@@ -22,10 +22,11 @@ type BalanceCardProps = Readonly<{
   balance?: number;
   income?: number;
   spent?: number;
+  totalSpendingAllTime?: number;
   daysLeft?: number;
   daysInMonth?: number;
   dayOfMonth?: number;
-  habitDeltaPct?: number; // +25 = spending 25% more than usual
+  habitDeltaPct?: number;
 }>;
 
 export function BalanceCard({
@@ -34,6 +35,7 @@ export function BalanceCard({
   balance = 3_680_000,
   income = 9_500_000,
   spent = 5_800_000,
+  totalSpendingAllTime,
   daysLeft = 18,
   daysInMonth = 30,
   dayOfMonth = 12,
@@ -163,8 +165,14 @@ export function BalanceCard({
 
         <div className="mt-2 flex justify-between text-[11px] text-white/75">
           <span>Masuk {hidden ? "••" : formatIDR(income)}</span>
-          <span>Keluar {hidden ? "••" : formatIDR(spent)}</span>
+          <span>Keluar bulan ini {hidden ? "••" : formatIDR(spent)}</span>
         </div>
+        {totalSpendingAllTime !== undefined ? (
+          <p className="mt-1.5 text-[11px] text-white/75">
+            Total keluar (semua waktu):{" "}
+            {hidden ? "••••••" : formatIDRFull(totalSpendingAllTime)}
+          </p>
+        ) : null}
       </div>
     </CardShell>
   );

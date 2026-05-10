@@ -27,6 +27,8 @@ export const AI_SUGGEST_CATEGORY_ID = "food";
 
 export const SUBMIT_REDIRECT_MS = 400;
 export const AMOUNT_ANIM_MS = 350;
+/** Jeda sebelum navigasi setelah sukses — selaras animasi nominal turun. */
+export const SUCCESS_REDIRECT_MS = Math.max(SUBMIT_REDIRECT_MS, AMOUNT_ANIM_MS + 100);
 export const MAX_AMOUNT_DIGITS = 12;
 
 export type CoachTone = "tip" | "warn" | "good";
