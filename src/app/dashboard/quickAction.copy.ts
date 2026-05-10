@@ -1,4 +1,4 @@
-import type { QuickActionId } from "@/src/components/dashboard";
+import type { QuickActionId } from "@/components/dashboard";
 
 export type QuickActionFeedbackCopy = {
   title: string;

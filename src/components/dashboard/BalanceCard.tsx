@@ -10,7 +10,7 @@ import { useState } from "react";
 
 import { formatIDR, formatIDRFull } from "@/lib/finance";
 import { cn } from "@/lib/utils";
-import { useCountUp } from "@/src/lib/hooks/useCountUp";
+import { useCountUp } from "@/lib/hooks/useCountUp";
 import { CardShell } from "./CardShell";
 import { MetricMiniCard } from "./MetricMiniCard";
 import { TimeMoneyProgress } from "./TimeMoneyProgress";

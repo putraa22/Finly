@@ -5,7 +5,7 @@ import * as React from "react";
 import {
   MAX_AMOUNT_DIGITS,
   type NumpadKey,
-} from "@/src/app/addexpense/addExpense.constants";
+} from "@/app/addexpense/addExpense.constants";
 
 export function useExpenseAmountString() {
   const [amount, setAmount] = React.useState("");

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 
-import { BottomNav } from "@/src/components/dashboard/BottomNav";
+import { BottomNav } from "@/components/dashboard/BottomNav";
 import { Toaster } from "@/components/ui/toaster";
 
 import "./globals.css";
