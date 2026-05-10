@@ -132,13 +132,13 @@ export function TransactionsCard({
                       className="mt-0.5 h-2.5 w-2.5 shrink-0"
                       aria-hidden
                     />
-                    <span className="min-w-0 break-words">{r.insight}</span>
+                    <span className="min-w-0 wrap-break-word">{r.insight}</span>
                   </p>
                 ) : null}
               </div>
               <p
                 className={cn(
-                  "min-w-[6.75rem] shrink-0 self-start pt-0.5 text-right tabular-nums text-sm font-semibold",
+                  "min-w-27 shrink-0 self-start pt-0.5 text-right tabular-nums text-sm font-semibold",
                   r.amount < 0 ? "text-foreground" : "text-primary",
                 )}
               >
