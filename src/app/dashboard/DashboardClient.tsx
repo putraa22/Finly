@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -46,6 +47,26 @@ export function DashboardClient({
     });
   };
 
+  const highNotificationCount = summary.notifications.filter(
+    (n) => n.priority === "high",
+  ).length;
+
+  React.useEffect(() => {
+    const firstHigh = summary.notifications.find(
+      (n) => n.priority === "high",
+    );
+    if (!firstHigh || typeof window === "undefined") return;
+    const key = `finly-toast-notif-${firstHigh.insightId}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+    toast({
+      title: firstHigh.title,
+      description: firstHigh.body,
+      variant:
+        firstHigh.kind === "warning" ? "destructive" : "default",
+    });
+  }, [summary.notifications]);
+
   return (
     <div className="relative flex flex-1 flex-col">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_15%_0%,rgba(16,185,129,0.20),transparent_45%),radial-gradient(circle_at_85%_15%,rgba(99,102,241,0.10),transparent_45%)]" />
@@ -59,7 +80,11 @@ export function DashboardClient({
               type="button"
               onClick={() => setNotifOpen(true)}
               className="relative grid size-12 place-items-center rounded-full border border-white/30 bg-white/70 shadow-[0_12px_30px_rgba(0,0,0,0.10)] backdrop-blur-md dark:bg-white/5"
-              aria-label="Notifications"
+              aria-label={
+                highNotificationCount > 0
+                  ? `Notifikasi, ${highNotificationCount} peringatan utama`
+                  : "Notifikasi"
+              }
             >
               <svg
                 viewBox="0 0 24 24"
@@ -74,7 +99,11 @@ export function DashboardClient({
                 <path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 7h18s-3 0-3-7" />
                 <path d="M13.73 21a2 2 0 01-3.46 0" />
               </svg>
-              <span className="absolute right-3 top-3 size-2.5 rounded-full bg-orange-400 ring-2 ring-white/80 dark:ring-black/40" />
+              {highNotificationCount > 0 ? (
+                <span className="absolute right-2 top-2 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-orange-500 px-1 text-[10px] font-bold tabular-nums text-white ring-2 ring-white/90 dark:ring-black/50">
+                  {highNotificationCount > 9 ? "9+" : highNotificationCount}
+                </span>
+              ) : null}
             </button>
           }
         />
@@ -245,7 +274,11 @@ export function DashboardClient({
         </motion.div>
       </div>
 
-      <NotificationsSheet open={notifOpen} onOpenChange={setNotifOpen} />
+      <NotificationsSheet
+        open={notifOpen}
+        onOpenChange={setNotifOpen}
+        notifications={summary.notifications}
+      />
     </div>
   );
 }

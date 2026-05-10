@@ -2,6 +2,8 @@ import { CATEGORIES } from "@/lib/finance";
 import { generateFinlyInsights } from "@/lib/insights";
 import { parseEnvInt } from "@/lib/insights/env";
 import type { DashboardInsight } from "@/lib/insights/types";
+import { notificationsFromInsights } from "@/lib/notifications/from-insights";
+import type { FinlyNotification } from "@/lib/notifications/types";
 import { prisma } from "@/lib/prisma";
 
 import type { SpendingBreakdownItem } from "@/components/dashboard/SpendingBreakdown";
@@ -29,6 +31,7 @@ export type DashboardSummary = {
   insights: DashboardInsight[];
   /** Daftar insight lengkap untuk halaman /insights (dashboard memakai `insights` terpotong). */
   insightsAll: DashboardInsight[];
+  notifications: FinlyNotification[];
   latestTransactions: DashboardRecentTransaction[];
 };
 
@@ -246,6 +249,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
   });
   const dashboardInsightCap = parseEnvInt("MAX_INSIGHTS", 6);
   const insights = insightsAll.slice(0, dashboardInsightCap);
+  const notifications = notificationsFromInsights(insightsAll);
 
   const spendingBreakdownItems: SpendingBreakdownItem[] = monthByCategory
     .map((r) => ({
@@ -271,6 +275,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     spendingBreakdownItems,
     insights,
     insightsAll,
+    notifications,
     latestTransactions: rows.map(mapTransaction),
   };
 }
