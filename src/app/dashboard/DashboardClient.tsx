@@ -9,6 +9,7 @@ import {
   BalanceCard,
   CoachInsight,
   MiniSimulator,
+  MonthlySnapshotCard,
   NotificationsSheet,
   ProgressToday,
   QuickActions,
@@ -135,6 +136,15 @@ export function DashboardClient({
               daysInMonth={summary.daysInMonth}
               dayOfMonth={summary.dayOfMonth}
             />
+          </motion.div>
+
+          <motion.div
+            variants={{
+              hidden: { opacity: 0, y: 10 },
+              show: { opacity: 1, y: 0 },
+            }}
+          >
+            <MonthlySnapshotCard snapshot={summary.monthlySnapshot} />
           </motion.div>
 
           <motion.div

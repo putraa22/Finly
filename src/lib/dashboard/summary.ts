@@ -8,6 +8,10 @@ import { prisma } from "@/lib/prisma";
 
 import type { SpendingBreakdownItem } from "@/components/dashboard/SpendingBreakdown";
 import type { DashboardRecentTransaction } from "@/components/dashboard/dashboard.types";
+import {
+  buildMonthlyFinancialSnapshot,
+  type MonthlyFinancialSnapshot,
+} from "@/lib/dashboard/monthly-snapshot";
 
 export type DashboardSummary = {
   balance: number;
@@ -34,6 +38,7 @@ export type DashboardSummary = {
   notifications: FinlyNotification[];
   /** Proporsi pengeluaran makan bulan ini (0–1) untuk slider simulasi; fallback env jika belum ada transaksi. */
   simulatorFoodShare: number;
+  monthlySnapshot: MonthlyFinancialSnapshot;
   latestTransactions: DashboardRecentTransaction[];
 };
 
@@ -210,6 +215,11 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
   const savingsSpendLastMonth =
     prevMonthByCategory.find((r) => r.category === "savings")?._sum.amount ?? 0;
 
+  const spentLastMonthTotal = prevMonthByCategory.reduce(
+    (sum, r) => sum + (r._sum.amount ?? 0),
+    0,
+  );
+
   const startingBalance = parseEnvNumber("STARTING_BALANCE", 0);
   const balance = startingBalance - totalSpending;
 
@@ -262,6 +272,25 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
   const insights = insightsAll.slice(0, dashboardInsightCap);
   const notifications = notificationsFromInsights(insightsAll);
 
+  const monthlySavingsGoalRaw = process.env.MONTHLY_SAVINGS_GOAL;
+  let monthlySavingsGoalEnv: number | undefined;
+  if (monthlySavingsGoalRaw !== undefined && monthlySavingsGoalRaw !== "") {
+    const g = Number(monthlySavingsGoalRaw);
+    if (Number.isFinite(g) && g > 0) monthlySavingsGoalEnv = g;
+  }
+
+  const monthlySnapshot = buildMonthlyFinancialSnapshot({
+    spentThisMonth,
+    spentLastMonthTotal,
+    dayOfMonth,
+    daysInMonth,
+    monthByCategory,
+    prevMonthByCategory,
+    savingsSpendThisMonth,
+    monthlyIncome,
+    savingsGoalFromEnv: monthlySavingsGoalEnv,
+  });
+
   const spendingBreakdownItems: SpendingBreakdownItem[] = monthByCategory
     .map((r) => ({
       categoryId: r.category,
@@ -288,6 +317,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     insightsAll,
     notifications,
     simulatorFoodShare,
+    monthlySnapshot,
     latestTransactions: rows.map(mapTransaction),
   };
 }

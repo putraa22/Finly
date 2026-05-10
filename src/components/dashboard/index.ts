@@ -5,6 +5,7 @@ export * from "./BudgetsCard";
 export * from "./CardShell";
 export * from "./ScreenHeader";
 export * from "./MetricMiniCard";
+export * from "./MonthlySnapshotCard";
 export * from "./MiniSimulator";
 export * from "./NotificationsSheet";
 export * from "./CoachInsight";
