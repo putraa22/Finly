@@ -9,31 +9,70 @@ import {
   AddTransactionSheet,
   BalanceCard,
   BottomNav,
-  BudgetsCard,
   CoachInsight,
-  ScreenHeader,
+  MiniSimulator,
   NotificationsSheet,
-  SpendingOverviewCard,
+  ProgressToday,
+  QuickActions,
+  ScreenHeader,
+  SpendingBreakdown,
   TransactionsCard,
+  type QuickActionId,
+  type SpendingBreakdownItem,
 } from "@/src/components/dashboard";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { toast } from "@/src/lib/hooks/use-toast";
+
+import { QUICK_ACTION_FEEDBACK_COPY } from "./quickAction.copy";
+
+const SPENDING_BREAKDOWN_DEMO: SpendingBreakdownItem[] = [
+  {
+    categoryId: "food",
+    amount: 1_850_000,
+    trend: 12,
+    flag: "problem",
+  },
+  {
+    categoryId: "transport",
+    amount: 720_000,
+    trend: -5,
+    flag: null,
+  },
+  {
+    categoryId: "shopping",
+    amount: 540_000,
+    trend: -2,
+    flag: "good",
+  },
+  {
+    categoryId: "bills",
+    amount: 380_000,
+    trend: 0,
+    flag: null,
+  },
+  {
+    categoryId: "health",
+    amount: 210_000,
+    trend: 3,
+    flag: null,
+  },
+];
+
+const SPENDING_BREAKDOWN_TOTAL = SPENDING_BREAKDOWN_DEMO.reduce(
+  (s, x) => s + x.amount,
+  0,
+);
 
 export default function DashboardPage() {
   const [sheetOpen, setSheetOpen] = React.useState(false);
   const [notifOpen, setNotifOpen] = React.useState(false);
   const router = useRouter();
-  const [quickAction, setQuickAction] = React.useState<
-    null | "challenge" | "set-limit" | "auto-save"
-  >(null);
 
-  const handleQuickAction = (action: "challenge" | "set-limit" | "auto-save") => {
-    setQuickAction(action);
+  const handleQuickAction = (action: QuickActionId) => {
+    const copy = QUICK_ACTION_FEEDBACK_COPY[action];
+    toast({
+      title: copy.title,
+      description: copy.description,
+    });
   };
 
   return (
@@ -98,7 +137,7 @@ export default function DashboardPage() {
             }}
           >
             {/* Coach insights — HERO */}
-            <section className="px-5 pt-6">
+            <section className="pt-6">
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-primary" />
@@ -143,43 +182,72 @@ export default function DashboardPage() {
           </motion.div>
 
           <motion.div
-            className="grid gap-4 lg:grid-cols-12"
             variants={{
               hidden: { opacity: 0, y: 10 },
               show: { opacity: 1, y: 0 },
             }}
           >
-            <div className="grid gap-4 lg:col-span-5">
-              <SpendingOverviewCard />
-              <BudgetsCard />
-            </div>
-            <TransactionsCard className="lg:col-span-7" />
+            <ProgressToday />
+          </motion.div>
+
+          <motion.div
+            variants={{
+              hidden: { opacity: 0, y: 10 },
+              show: { opacity: 1, y: 0 },
+            }}
+          >
+            <QuickActions onAction={handleQuickAction} />
+          </motion.div>
+
+          <motion.div
+            variants={{
+              hidden: { opacity: 0, y: 10 },
+              show: { opacity: 1, y: 0 },
+            }}
+          >
+            <MiniSimulator
+              currentBalance={3_680_000}
+              dailyBurn={205_000}
+              daysLeft={18}
+              monthlyIncome={9_500_000}
+              onApply={() =>
+                toast({
+                  title: "Rencana disimpan",
+                  description: "Nanti bisa kamu hubungkan ke data nyata.",
+                })
+              }
+            />
+          </motion.div>
+
+          <motion.div
+            variants={{
+              hidden: { opacity: 0, y: 10 },
+              show: { opacity: 1, y: 0 },
+            }}
+          >
+            <SpendingBreakdown
+              items={SPENDING_BREAKDOWN_DEMO}
+              total={SPENDING_BREAKDOWN_TOTAL}
+              onDetail={() => router.push("/insights")}
+            />
+          </motion.div>
+
+          <motion.div
+            variants={{
+              hidden: { opacity: 0, y: 10 },
+              show: { opacity: 1, y: 0 },
+            }}
+          >
+            <TransactionsCard />
           </motion.div>
         </motion.div>
       </div>
 
-      <BottomNav active="home" onAdd={() => setSheetOpen(true)} />
+      <BottomNav onAdd={() => setSheetOpen(true)} />
 
       <AddTransactionSheet open={sheetOpen} onOpenChange={setSheetOpen} />
 
       <NotificationsSheet open={notifOpen} onOpenChange={setNotifOpen} />
-
-      <Dialog open={quickAction !== null} onOpenChange={(o) => !o && setQuickAction(null)}>
-        <DialogContent className="rounded-3xl border-white/30 bg-white/80 backdrop-blur-md dark:bg-black/40">
-          <DialogHeader>
-            <DialogTitle>Quick action</DialogTitle>
-            <DialogDescription>
-              {quickAction === "challenge"
-                ? "Mulai tantangan hemat 7 hari."
-                : quickAction === "set-limit"
-                  ? "Aktifkan limit belanja mingguan."
-                  : quickAction === "auto-save"
-                    ? "Aktifkan auto-save untuk tabungan."
-                    : ""}
-            </DialogDescription>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

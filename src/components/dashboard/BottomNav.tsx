@@ -1,60 +1,112 @@
-import { BarChart3Icon, HomeIcon, PlusIcon, WalletIcon } from "lucide-react";
+"use client";
+
+import type { ReactNode } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  HomeIcon,
+  PlusIcon,
+  Sparkles,
+  TrendingUp,
+  UserIcon,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+export type BottomNavKey = "home" | "insights" | "future" | "profile";
+
+function NavItem({
+  href,
+  navKey,
+  active,
+  children,
+}: Readonly<{
+  href: string;
+  navKey: BottomNavKey;
+  active: BottomNavKey;
+  children: ReactNode;
+}>) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "flex min-w-0 flex-1 flex-col items-center gap-1 text-[10px] font-medium transition-colors",
+        active === navKey
+          ? "text-primary"
+          : "text-muted-foreground hover:text-foreground",
+      )}
+      aria-current={active === navKey ? "page" : undefined}
+    >
+      {children}
+    </Link>
+  );
+}
+
 export function BottomNav({
   className,
-  active = "home",
+  active: activeProp,
   onAdd,
 }: Readonly<{
   className?: string;
-  active?: "home" | "wallet" | "chart";
+  active?: BottomNavKey;
   onAdd?: () => void;
 }>) {
-  const item = (key: "home" | "wallet" | "chart") =>
-    cn(
-      "flex flex-col items-center gap-1 text-[10px] font-medium",
-      active === key ? "text-foreground" : "text-muted-foreground"
-    );
+  const pathname = usePathname();
+
+  const active: BottomNavKey =
+    activeProp ??
+    (pathname.startsWith("/insights")
+      ? "insights"
+      : pathname.startsWith("/future")
+        ? "future"
+        : pathname.startsWith("/profile")
+          ? "profile"
+          : "home");
 
   return (
     <nav
       className={cn(
-        "fixed inset-x-3 bottom-3 z-40 mx-auto flex max-w-md items-center justify-between rounded-3xl border border-white/30 bg-white/65 px-4 py-3 shadow-[0_12px_30px_rgba(0,0,0,0.10)] backdrop-blur-md dark:bg-white/5 sm:hidden",
-        className
+        "pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 md:px-6 md:pb-6",
+        className,
       )}
       aria-label="Bottom navigation"
     >
-      <button className={item("home")} aria-current={active === "home"}>
-        <HomeIcon className="size-5" />
-        Home
-      </button>
-
-      <button
-        className={item("wallet")}
-        aria-current={active === "wallet"}
+      <div
+        className={cn(
+          "pointer-events-auto flex w-full max-w-md items-center justify-between gap-1 rounded-full border border-white/40 bg-white/85 px-3 py-2 shadow-[0_12px_40px_rgba(0,0,0,0.12)] backdrop-blur-md dark:border-white/10 dark:bg-black/50 md:max-w-lg md:gap-2 md:px-5 md:py-2.5",
+        )}
       >
-        <WalletIcon className="size-5" />
-        Wallet
-      </button>
+        <NavItem href="/dashboard" navKey="home" active={active}>
+          <HomeIcon className="size-5 shrink-0" aria-hidden />
+          Home
+        </NavItem>
 
-      <Button
-        size="icon-lg"
-        className="size-12 rounded-3xl bg-emerald-600 text-white shadow-[0_16px_34px_rgba(16,185,129,0.35)] hover:bg-emerald-600/90"
-        onClick={onAdd}
-        aria-label="Add transaction"
-      >
-        <PlusIcon />
-      </Button>
+        <NavItem href="/insights" navKey="insights" active={active}>
+          <Sparkles className="size-5 shrink-0" aria-hidden />
+          Insights
+        </NavItem>
 
-      <button className={item("chart")} aria-current={active === "chart"}>
-        <BarChart3Icon className="size-5" />
-        Chart
-      </button>
+        <Button
+          type="button"
+          size="icon-lg"
+          className="size-12 shrink-0 rounded-full bg-primary text-primary-foreground shadow-[0_14px_36px_color-mix(in_oklch,var(--primary)_38%,transparent)] hover:bg-primary/90 md:size-14 md:rounded-full"
+          onClick={() => onAdd?.()}
+          aria-label="Tambah transaksi"
+        >
+          <PlusIcon className="size-6" aria-hidden />
+        </Button>
 
-      <span className="w-10" />
+        <NavItem href="/future" navKey="future" active={active}>
+          <TrendingUp className="size-5 shrink-0" aria-hidden />
+          Future
+        </NavItem>
+
+        <NavItem href="/profile" navKey="profile" active={active}>
+          <UserIcon className="size-5 shrink-0" aria-hidden />
+          Profile
+        </NavItem>
+      </div>
     </nav>
   );
 }
-
