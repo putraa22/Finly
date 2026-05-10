@@ -17,23 +17,11 @@ import {
   type QuickActionId,
 } from "@/components/dashboard";
 import type { DashboardSummary } from "@/lib/dashboard/summary";
-import type { DashboardInsight } from "@/lib/insights/types";
+import { FALLBACK_INSIGHTS } from "@/lib/insights/fallback";
 import { toast } from "@/lib/hooks/use-toast";
 import { useDashboardUiStore } from "@/store/dashboard-store";
 
 import { QUICK_ACTION_FEEDBACK_COPY } from "./quickAction.copy";
-
-const FALLBACK_INSIGHTS: DashboardInsight[] = [
-  {
-    id: "fallback-empty",
-    kind: "spending_awareness",
-    tone: "tip",
-    problem: "Belum ada cukup data untuk insight personal.",
-    impact: "Catat beberapa pengeluaran dulu — pola akan terlihat di sini.",
-    action: "Tambah pengeluaran",
-    quickAction: "fix",
-  },
-];
 
 export function DashboardClient({
   summary,
