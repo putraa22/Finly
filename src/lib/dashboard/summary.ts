@@ -32,6 +32,8 @@ export type DashboardSummary = {
   /** Daftar insight lengkap untuk halaman /insights (dashboard memakai `insights` terpotong). */
   insightsAll: DashboardInsight[];
   notifications: FinlyNotification[];
+  /** Proporsi pengeluaran makan bulan ini (0–1) untuk slider simulasi; fallback env jika belum ada transaksi. */
+  simulatorFoodShare: number;
   latestTransactions: DashboardRecentTransaction[];
 };
 
@@ -233,6 +235,15 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
 
   const remainingBudget = monthlyBudget - spentThisMonth;
 
+  const defaultSimFoodShare = parseEnvNumber("SIMULATOR_DEFAULT_FOOD_SHARE", 0.32);
+  const simulatorFoodShare =
+    spentThisMonth > 0
+      ? Math.min(
+          0.9,
+          Math.max(0.05, foodSpendThisMonth / spentThisMonth),
+        )
+      : defaultSimFoodShare;
+
   const insightsAll = generateFinlyInsights({
     balance,
     spentThisMonth,
@@ -276,6 +287,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     insights,
     insightsAll,
     notifications,
+    simulatorFoodShare,
     latestTransactions: rows.map(mapTransaction),
   };
 }

@@ -237,7 +237,9 @@ export function DashboardClient({
               currentBalance={summary.balance}
               dailyBurn={dailyBurnEstimate}
               daysLeft={summary.daysLeftInMonth}
+              daysInMonth={summary.daysInMonth}
               monthlyIncome={summary.monthlyIncome}
+              foodShareOfSpend={summary.simulatorFoodShare}
               onApply={() =>
                 toast({
                   title: "Rencana disimpan",
