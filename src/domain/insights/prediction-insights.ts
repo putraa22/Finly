@@ -1,10 +1,12 @@
+import {
+  computeBurnRate,
+  computeSafeDailyBudget,
+  DASHBOARD_RUNWAY_CAP_DAYS,
+} from "@/domain/finance/dashboard-derived-metrics";
 import { formatIDR, formatIDRFull } from "@/formatters/currency";
 import type { DashboardInsight } from "@/domain/insights/types";
 
 import type { FinlyInsightEngineInput } from "@/domain/insights/engine-input";
-
-/** Batas atas hari runway untuk menyimpan insight sebagai angka masuk akal di UI. */
-const RUNWAY_CAP_DAYS = 365;
 
 /** Daily safe (saldo / sisa hari bulan) + burn runway dari rata-rata pengeluaran bulan ini. */
 export function generatePredictionInsights(
@@ -15,10 +17,10 @@ export function generatePredictionInsights(
     spentThisMonth,
     dayOfMonth,
     daysLeftInMonth,
+    remainingBudget,
   } = input;
 
   const out: DashboardInsight[] = [];
-  const safeDaysLeft = Math.max(1, daysLeftInMonth);
 
   if (balance <= 0 && spentThisMonth > 0) {
     out.push({
@@ -35,8 +37,15 @@ export function generatePredictionInsights(
     return out;
   }
 
+  const safeDaysLeft = Math.max(1, daysLeftInMonth);
+  const { balanceCalendarPerDay } = computeSafeDailyBudget({
+    balance,
+    remainingBudget,
+    daysLeftInMonth,
+  });
+
   if (balance > 0) {
-    const safeDaily = balance / safeDaysLeft;
+    const safeDaily = balanceCalendarPerDay;
     out.push({
       id: "safe-daily-calendar",
       kind: "spending_awareness",
@@ -48,11 +57,11 @@ export function generatePredictionInsights(
     });
   }
 
-  const dailyBurn = spentThisMonth / Math.max(1, dayOfMonth);
+  const { dailyBurn } = computeBurnRate({ spentThisMonth, dayOfMonth });
   if (balance > 0 && dailyBurn > 0) {
     const rawDays = balance / dailyBurn;
     const daysUntilEmpty = Math.max(1, Math.floor(rawDays));
-    if (daysUntilEmpty <= RUNWAY_CAP_DAYS) {
+    if (daysUntilEmpty <= DASHBOARD_RUNWAY_CAP_DAYS) {
       const urgentRunway = daysUntilEmpty <= daysLeftInMonth;
       out.push({
         id: "balance-runway",

@@ -15,6 +15,7 @@ import type { FinlyNotification } from "@/lib/notifications/types";
 import { cn } from "@/lib/utils";
 
 const KIND_LABEL: Record<FinlyNotification["kind"], string> = {
+  critical: "Kritis",
   warning: "Peringatan",
   suggestion: "Saran",
   achievement: "Pencapaian",
@@ -27,6 +28,8 @@ const PRIORITY_LABEL: Record<FinlyNotification["priority"], string> = {
 };
 
 const KIND_CHIP_CLASS: Record<FinlyNotification["kind"], string> = {
+  critical:
+    "bg-destructive/15 text-destructive dark:text-rose-300",
   warning: "bg-orange-500/15 text-orange-800 dark:text-orange-200",
   suggestion: "bg-primary/15 text-primary",
   achievement: "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200",

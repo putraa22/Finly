@@ -9,6 +9,7 @@ export * from "./MonthlySnapshotCard";
 export * from "./MiniSimulator";
 export * from "./NotificationsSheet";
 export * from "./CoachInsight";
+export * from "./FinancialHealthCard";
 export * from "./SectionTitle";
 export * from "./SpendingBreakdown";
 export * from "./ProgressToday";

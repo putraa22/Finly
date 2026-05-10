@@ -8,15 +8,26 @@ import type { SpendingBreakdownItem } from "@/components/dashboard/SpendingBreak
 import type { DashboardSummary } from "@/application/dashboard/dashboard-summary.types";
 import { CATEGORIES } from "@/domain/finance/categories";
 import {
+  computeBalanceForecast,
+  computeBurnRate,
+  computeSafeDailyBudget,
+  computeSpendingVelocity,
+} from "@/domain/finance/dashboard-derived-metrics";
+import { computeFinancialHealthScore } from "@/domain/finance/financial-health-score";
+import {
   buildMonthlyFinancialSnapshot,
 } from "@/domain/finance/monthly-snapshot";
 import { generateFinlyInsights } from "@/domain/insights";
 import {
   parseEnvInt,
   parseEnvNumber,
+  parseEnvPercent,
 } from "@/domain/insights/env";
 import { notificationsFromInsights } from "@/domain/notifications/map-from-insights";
-import { fetchDashboardAggregateBundle } from "@/infrastructure/persistence/dashboard-queries";
+import {
+  fetchDashboardAggregateBundle,
+  fetchTransactionsForPatternDetection,
+} from "@/infrastructure/persistence/dashboard-queries";
 
 function categoryLabelOrOther(catId: string): string {
   return (
@@ -73,7 +84,10 @@ function mapTransaction(row: {
 
 export async function getDashboardSummary(): Promise<DashboardSummary> {
   const now = new Date();
-  const bundle = await fetchDashboardAggregateBundle(now);
+  const [bundle, patternTransactions] = await Promise.all([
+    fetchDashboardAggregateBundle(now),
+    fetchTransactionsForPatternDetection(now),
+  ]);
 
   const {
     totalSpending,
@@ -128,6 +142,29 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
 
   const remainingBudget = monthlyBudget - spentThisMonth;
 
+  const { dailyBurn } = computeBurnRate({
+    spentThisMonth,
+    dayOfMonth,
+  });
+  const { budgetPacePerDay, balanceCalendarPerDay } =
+    computeSafeDailyBudget({
+      balance,
+      remainingBudget,
+      daysLeftInMonth,
+    });
+  const { velocityRatio, expectedSpendSoFar } = computeSpendingVelocity({
+    spentThisMonth,
+    monthlyBudget,
+    dayOfMonth,
+    daysInMonth,
+  });
+  const { projectedMonthSpend, runwayDaysAtBurn } = computeBalanceForecast({
+    balance,
+    spentThisMonth,
+    dayOfMonth,
+    daysInMonth,
+  });
+
   const defaultSimFoodShare = parseEnvNumber(
     "SIMULATOR_DEFAULT_FOOD_SHARE",
     0.32,
@@ -140,20 +177,36 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
         )
       : defaultSimFoodShare;
 
-  const insightsAll = generateFinlyInsights({
-    balance,
-    spentThisMonth,
-    dayOfMonth,
-    daysLeftInMonth,
-    remainingBudget,
-    spentToday,
-    spentThisWeek,
-    spentLastWeek,
-    dailyLimit,
-    foodSpendThisMonth,
-    savingsSpendThisMonth,
-    savingsSpendLastMonth,
-  });
+  const monthShoppingSpend =
+    monthByCategory.find((r) => r.category === "shopping")?._sum?.amount ?? 0;
+  const prevMonthShoppingSpend =
+    prevMonthByCategory.find((r) => r.category === "shopping")?._sum?.amount ??
+    0;
+  const weekSpikeWarnPct = parseEnvPercent("SPIKE_WEEK_PCT", 20);
+
+  const insightsAll = generateFinlyInsights(
+    {
+      balance,
+      spentThisMonth,
+      dayOfMonth,
+      daysLeftInMonth,
+      remainingBudget,
+      spentToday,
+      spentThisWeek,
+      spentLastWeek,
+      dailyLimit,
+      foodSpendThisMonth,
+      savingsSpendThisMonth,
+      savingsSpendLastMonth,
+    },
+    {
+      now,
+      transactions: patternTransactions,
+      monthShoppingSpend,
+      prevMonthShoppingSpend,
+      weekSpikeWarnPct,
+    },
+  );
   const dashboardInsightCap = parseEnvInt("MAX_INSIGHTS", 6);
   const insights = insightsAll.slice(0, dashboardInsightCap);
   const notifications = notificationsFromInsights(insightsAll);
@@ -177,6 +230,24 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     savingsGoalFromEnv: monthlySavingsGoalEnv,
   });
 
+  const financialHealth = computeFinancialHealthScore({
+    spentThisMonth,
+    dayOfMonth,
+    daysInMonth,
+    spentLastMonthTotal,
+    monthByCategory,
+    prevMonthByCategory,
+    savingsSpendThisMonth,
+    monthlyIncome,
+    savingsGoalFromEnv: monthlySavingsGoalEnv,
+    spentToday,
+    spentThisWeek,
+    spentLastWeek,
+    dailyLimit,
+    monthlyBudget,
+    weekSpikeWarnPct,
+  });
+
   const spendingBreakdownItems: SpendingBreakdownItem[] = monthByCategory
     .map((r) => ({
       categoryId: r.category,
@@ -198,12 +269,20 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     dayOfMonth,
     daysInMonth,
     daysLeftInMonth,
+    dailyBurn,
+    safeDailyBudgetPace: budgetPacePerDay,
+    safeDailyFromBalance: balanceCalendarPerDay,
+    spendingVelocityRatio: velocityRatio,
+    expectedSpendSoFar,
+    projectedMonthSpend,
+    balanceRunwayDays: runwayDaysAtBurn,
     spendingBreakdownItems,
     insights,
     insightsAll,
     notifications,
     simulatorFoodShare,
     monthlySnapshot,
+    financialHealth,
     latestTransactions: latestTransactions.map(mapTransaction),
   };
 }
