@@ -6,7 +6,7 @@ import { toast } from "@/src/lib/hooks/use-toast";
 export default function ProfilePage() {
   return (
     <>
-      <div className="mx-auto max-w-md px-4 pb-28 pt-8 md:max-w-lg md:max-w-xl lg:max-w-5xl">
+      <div className="mx-auto w-full max-w-md px-4 pb-28 pt-8 sm:max-w-lg md:max-w-xl lg:max-w-5xl">
         <h1 className="font-heading text-lg font-bold text-foreground">
           Profil
         </h1>
