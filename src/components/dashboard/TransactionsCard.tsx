@@ -92,62 +92,68 @@ export function TransactionsCard({
         </button>
       </div>
 
-      <ul className="mt-2 divide-y divide-border/60">
-        {transactions.map((r) => {
-          const cat = resolveCategory(r.cat);
-          const labelClass =
-            TRANSACTION_LABEL_STYLES[r.label] ??
-            "bg-muted text-muted-foreground";
+      {transactions.length === 0 ? (
+        <p className="mt-4 rounded-2xl border border-dashed border-border/80 bg-muted/30 px-4 py-8 text-center text-sm text-muted-foreground">
+          Belum ada transaksi. Catat pengeluaran lewat tombol tambah untuk melihatnya di sini.
+        </p>
+      ) : (
+        <ul className="mt-2 divide-y divide-border/60">
+          {transactions.map((r) => {
+            const cat = resolveCategory(r.cat);
+            const labelClass =
+              TRANSACTION_LABEL_STYLES[r.label] ??
+              "bg-muted text-muted-foreground";
 
-          return (
-            <li key={r.id} className="flex items-start gap-3 py-3">
-              <div
-                className={cn(
-                  "grid size-11 shrink-0 place-items-center rounded-2xl text-lg leading-none",
-                  cat.color,
-                )}
-              >
-                <span aria-hidden>{cat.emoji}</span>
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex min-w-0 flex-nowrap items-center gap-1.5 overflow-hidden">
-                  <p className="min-w-0 shrink truncate text-sm font-semibold text-foreground">
-                    {r.title}
-                  </p>
-                  <span
-                    className={cn(
-                      "shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold",
-                      labelClass,
-                    )}
-                  >
-                    {r.label}
-                  </span>
+            return (
+              <li key={r.id} className="flex items-start gap-3 py-3">
+                <div
+                  className={cn(
+                    "grid size-11 shrink-0 place-items-center rounded-2xl text-lg leading-none",
+                    cat.color,
+                  )}
+                >
+                  <span aria-hidden>{cat.emoji}</span>
                 </div>
-                <p className="truncate text-xs text-muted-foreground">
-                  {cat.label} · {r.time}
-                </p>
-                {r.insight ? (
-                  <p className="mt-0.5 flex items-start gap-1 text-[11px] font-medium text-secondary">
-                    <AlertCircle
-                      className="mt-0.5 h-2.5 w-2.5 shrink-0"
-                      aria-hidden
-                    />
-                    <span className="min-w-0 wrap-break-word">{r.insight}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex min-w-0 flex-nowrap items-center gap-1.5 overflow-hidden">
+                    <p className="min-w-0 shrink truncate text-sm font-semibold text-foreground">
+                      {r.title}
+                    </p>
+                    <span
+                      className={cn(
+                        "shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold",
+                        labelClass,
+                      )}
+                    >
+                      {r.label}
+                    </span>
+                  </div>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {cat.label} · {r.time}
                   </p>
-                ) : null}
-              </div>
-              <p
-                className={cn(
-                  "min-w-27 shrink-0 self-start pt-0.5 text-right tabular-nums text-sm font-semibold",
-                  r.amount < 0 ? "text-foreground" : "text-primary",
-                )}
-              >
-                {formatListAmount(r.amount)}
-              </p>
-            </li>
-          );
-        })}
-      </ul>
+                  {r.insight ? (
+                    <p className="mt-0.5 flex items-start gap-1 text-[11px] font-medium text-secondary">
+                      <AlertCircle
+                        className="mt-0.5 h-2.5 w-2.5 shrink-0"
+                        aria-hidden
+                      />
+                      <span className="min-w-0 wrap-break-word">{r.insight}</span>
+                    </p>
+                  ) : null}
+                </div>
+                <p
+                  className={cn(
+                    "min-w-27 shrink-0 self-start pt-0.5 text-right tabular-nums text-sm font-semibold",
+                    r.amount < 0 ? "text-foreground" : "text-primary",
+                  )}
+                >
+                  {formatListAmount(r.amount)}
+                </p>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </CardShell>
   );
 }

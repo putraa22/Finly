@@ -38,6 +38,7 @@ export function AddExpenseScreen() {
   const { numeric, appendKey, bumpBy, clear } = useExpenseAmountString();
   const [category, setCategory] = React.useState("food");
   const [note, setNote] = React.useState("");
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const animated = useCountUp(numeric, AMOUNT_ANIM_MS);
   const animatedDigits = formatIdrDigits(animated);
@@ -56,7 +57,7 @@ export function AddExpenseScreen() {
   const aiSuggestionLabel =
     CATEGORIES.find((c) => c.id === AI_SUGGEST_CATEGORY_ID)?.label ?? "";
 
-  const submit = () => {
+  const submit = async () => {
     if (numeric <= 0) {
       toast({
         title: "Masukkan jumlah dulu ya",
@@ -64,10 +65,34 @@ export function AddExpenseScreen() {
       });
       return;
     }
-    toast({
-      title: `Tercatat: ${formatIDRFull(numeric)} • ${selectedCategory.label}`,
-    });
-    window.setTimeout(() => router.push("/dashboard"), SUBMIT_REDIRECT_MS);
+    setIsSubmitting(true);
+    try {
+      const res = await fetch("/api/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: numeric,
+          category,
+          note: note.trim() || undefined,
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { message?: string };
+
+      if (!res.ok) {
+        toast({
+          title: data.message ?? "Gagal menyimpan transaksi",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: `Tercatat: ${formatIDRFull(numeric)} • ${selectedCategory.label}`,
+      });
+      window.setTimeout(() => router.push("/dashboard"), SUBMIT_REDIRECT_MS);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const ctaLabel =
@@ -115,18 +140,23 @@ export function AddExpenseScreen() {
         <button
           type="button"
           onClick={submit}
-          disabled={numeric <= 0}
+          disabled={numeric <= 0 || isSubmitting}
           className={cn(
             "mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-semibold transition-all duration-200 ease-out",
-            numeric > 0
+            numeric > 0 && !isSubmitting
               ? "bg-linear-to-br from-primary to-emerald-700 text-primary-foreground shadow-[0_14px_36px_color-mix(in_oklch,var(--primary)_38%,transparent)] active:scale-[0.98]"
               : "bg-muted text-muted-foreground",
           )}
         >
-          {numeric > 0 ? (
+          {numeric > 0 && !isSubmitting ? (
             <>
               <Check className="size-5" aria-hidden />
               {ctaLabel}
+            </>
+          ) : numeric > 0 && isSubmitting ? (
+            <>
+              <Check className="size-5" aria-hidden />
+              Menyimpan…
             </>
           ) : (
             <>
