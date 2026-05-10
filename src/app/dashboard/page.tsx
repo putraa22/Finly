@@ -6,9 +6,7 @@ import { Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import {
-  AddTransactionSheet,
   BalanceCard,
-  BottomNav,
   CoachInsight,
   MiniSimulator,
   NotificationsSheet,
@@ -63,7 +61,6 @@ const SPENDING_BREAKDOWN_TOTAL = SPENDING_BREAKDOWN_DEMO.reduce(
 );
 
 export default function DashboardPage() {
-  const [sheetOpen, setSheetOpen] = React.useState(false);
   const [notifOpen, setNotifOpen] = React.useState(false);
   const router = useRouter();
 
@@ -242,10 +239,6 @@ export default function DashboardPage() {
           </motion.div>
         </motion.div>
       </div>
-
-      <BottomNav onAdd={() => setSheetOpen(true)} />
-
-      <AddTransactionSheet open={sheetOpen} onOpenChange={setSheetOpen} />
 
       <NotificationsSheet open={notifOpen} onOpenChange={setNotifOpen} />
     </div>

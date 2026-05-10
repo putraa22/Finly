@@ -1,111 +1,95 @@
 "use client";
 
-import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  HomeIcon,
-  PlusIcon,
-  Sparkles,
-  TrendingUp,
-  UserIcon,
-} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { Home, LineChart, Plus, Sparkles, User } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export type BottomNavKey = "home" | "insights" | "future" | "profile";
-
-function NavItem({
-  href,
-  navKey,
-  active,
-  children,
-}: Readonly<{
+type BottomNavItem = Readonly<{
   href: string;
-  navKey: BottomNavKey;
-  active: BottomNavKey;
-  children: ReactNode;
-}>) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        "flex min-w-0 flex-1 flex-col items-center gap-1 text-[10px] font-medium transition-colors",
-        active === navKey
-          ? "text-primary"
-          : "text-muted-foreground hover:text-foreground",
-      )}
-      aria-current={active === navKey ? "page" : undefined}
-    >
-      {children}
-    </Link>
-  );
+  label: string;
+  icon: LucideIcon;
+  primary?: boolean;
+}>;
+
+const items: BottomNavItem[] = [
+  { href: "/dashboard", label: "Home", icon: Home },
+  { href: "/insights", label: "Insights", icon: Sparkles },
+  { href: "/addexpense", label: "Add", icon: Plus, primary: true },
+  { href: "/future", label: "Future", icon: LineChart },
+  { href: "/profile", label: "Profile", icon: User },
+];
+
+function navItemActive(pathname: string, href: string): boolean {
+  if (href === "/dashboard") {
+    return pathname === "/dashboard" || pathname === "/";
+  }
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 export function BottomNav({
   className,
-  active: activeProp,
-  onAdd,
 }: Readonly<{
   className?: string;
-  active?: BottomNavKey;
-  onAdd?: () => void;
 }>) {
   const pathname = usePathname();
-
-  const active: BottomNavKey =
-    activeProp ??
-    (pathname.startsWith("/insights")
-      ? "insights"
-      : pathname.startsWith("/future")
-        ? "future"
-        : pathname.startsWith("/profile")
-          ? "profile"
-          : "home");
 
   return (
     <nav
       className={cn(
-        "pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 md:px-6 md:pb-6",
+        "fixed inset-x-0 bottom-0 z-40 mx-auto max-w-[440px] px-3 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2",
         className,
       )}
-      aria-label="Bottom navigation"
+      aria-label="Primary"
     >
-      <div
-        className={cn(
-          "pointer-events-auto flex w-full max-w-md items-center justify-between gap-1 rounded-full border border-white/40 bg-white/85 px-3 py-2 shadow-[0_12px_40px_rgba(0,0,0,0.12)] backdrop-blur-md dark:border-white/10 dark:bg-black/50 md:max-w-lg md:gap-2 md:px-5 md:py-2.5",
-        )}
-      >
-        <NavItem href="/dashboard" navKey="home" active={active}>
-          <HomeIcon className="size-5 shrink-0" aria-hidden />
-          Home
-        </NavItem>
+      <div className="relative flex items-end justify-between rounded-3xl border border-border/60 bg-card/90 px-2 py-2 shadow-[0_12px_40px_rgba(0,0,0,0.12)] backdrop-blur-xl dark:shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
+        {items.map((item) => {
+          const Icon = item.icon;
+          const active = navItemActive(pathname, item.href);
 
-        <NavItem href="/insights" navKey="insights" active={active}>
-          <Sparkles className="size-5 shrink-0" aria-hidden />
-          Insights
-        </NavItem>
+          if (item.primary) {
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-label={item.label}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "-mt-7 grid size-14 place-items-center rounded-full bg-linear-to-br from-primary to-primary/85 text-primary-foreground shadow-[0_14px_36px_color-mix(in_oklch,var(--primary)_38%,transparent)] transition-all duration-300 ease-out active:scale-95",
+                  active && "scale-105",
+                )}
+              >
+                <Icon className="size-6" strokeWidth={2.5} aria-hidden />
+              </Link>
+            );
+          }
 
-        <Button
-          type="button"
-          size="icon-lg"
-          className="size-12 shrink-0 rounded-full bg-primary text-primary-foreground shadow-[0_14px_36px_color-mix(in_oklch,var(--primary)_38%,transparent)] hover:bg-primary/90 md:size-14 md:rounded-full"
-          onClick={() => onAdd?.()}
-          aria-label="Tambah transaksi"
-        >
-          <PlusIcon className="size-6" aria-hidden />
-        </Button>
-
-        <NavItem href="/future" navKey="future" active={active}>
-          <TrendingUp className="size-5 shrink-0" aria-hidden />
-          Future
-        </NavItem>
-
-        <NavItem href="/profile" navKey="profile" active={active}>
-          <UserIcon className="size-5 shrink-0" aria-hidden />
-          Profile
-        </NavItem>
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "flex min-w-0 flex-1 flex-col items-center gap-1 rounded-2xl px-2 py-2 text-[11px] font-medium transition-colors duration-300 ease-out",
+                active
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <Icon
+                className={cn(
+                  "size-5 shrink-0 transition-transform duration-300",
+                  active && "scale-110",
+                )}
+                strokeWidth={2.25}
+                aria-hidden
+              />
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
       </div>
     </nav>
   );

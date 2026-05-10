@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 
+import { BottomNav } from "@/src/components/dashboard/BottomNav";
 import { Toaster } from "@/components/ui/toaster";
 
 import "./globals.css";
@@ -31,8 +32,9 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="flex min-h-full flex-col">
         {children}
+        <BottomNav />
         <Toaster />
       </body>
     </html>
