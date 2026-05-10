@@ -1,36 +1,92 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Finly App
 
-## Getting Started
+Aplikasi web personal finance berbasis **Next.js (App Router)** dengan dashboard, insight, simulasi cepat, dan notifikasi yang diurutkan secara deterministik. Data transaksi disimpan di **PostgreSQL** lewat **Prisma**.
 
-First, run the development server:
+## Stack
+
+- Next.js 16, React 19, TypeScript
+- Tailwind CSS 4, Radix / shadcn-style UI, Framer Motion
+- Prisma 7 + adapter `pg`
+- Zustand (UI dashboard ringan)
+
+## Prasyarat
+
+- Node.js 20+ (disarankan)
+- PostgreSQL dan string koneksi (`DATABASE_URL`)
+
+## Setup
+
+```bash
+npm install
+```
+
+Pastikan `.env` berisi minimal:
+
+```bash
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE?schema=public"
+```
+
+Lalu sinkronkan schema dan generate client Prisma (sesuaikan dengan workflow kamu, mis. `prisma migrate dev` atau `db push`):
+
+```bash
+npx prisma generate
+# npx prisma migrate dev
+```
+
+Jalankan pengembangan:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Buka [http://localhost:3000](http://localhost:3000). Halaman utama aplikasi mengarah ke alur dashboard/transaksi sesuai routing di `src/app`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Skrip NPM
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Skrip | Keterangan |
+|--------|------------|
+| `npm run dev` | Server pengembangan Next.js |
+| `npm run build` | Build produksi |
+| `npm run start` | Menjalankan build produksi |
+| `npm run lint` | ESLint |
 
-## Learn More
+## Variabel lingkungan (opsional)
 
-To learn more about Next.js, take a look at the following resources:
+Selain `DATABASE_URL`, banyak perilaku bisnis memakai env dengan fallback default. Cuplikan yang sering dipakai:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Variabel | Peran singkat |
+|----------|----------------|
+| `STARTING_BALANCE` | Saldo awal untuk saldo tampilan (`0` jika kosong) |
+| `MONTHLY_INCOME`, `MONTHLY_BUDGET` | Pendapatan / budget bulanan |
+| `MONTHLY_SAVINGS_GOAL` | Target tabungan (override proporsi default) |
+| `DAILY_SPENDING_LIMIT` | Limit insight harian |
+| `SPIKE_WEEK_PCT` | Ambang lonjakan minggu vs minggu lalu |
+| `MAX_INSIGHTS` | Jumlah insight di dashboard |
+| `SIMULATOR_DEFAULT_FOOD_SHARE` | Default proporsi makan untuk simulasi |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Insight lain memakai env seperti `FOOD_MONTH_SHARE_ALERT`, `HEALTHY_WEEK_DROP_PCT`, dll.; lihat pemanggilan di `src/domain/insights/` dan `get-dashboard-summary.ts`.
 
-## Deploy on Vercel
+## Struktur kode (ringkas)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `src/app/` — route UI (App Router)
+- `src/application/` — use case orkestrasi (mis. ringkasan dashboard)
+- `src/domain/` — logika murni: finance, insights, notifications
+- `src/infrastructure/` — query persistence (Prisma)
+- `src/components/` — komponen React
+- `src/lib/` — barrel kompatibilitas impor (Prisma client, re-export domain)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Fitur utama
+
+- **Financial Health Score** — skor kesehatan finansial dengan alasan (stabilitas, tabungan, ritme belanja, mix kategori).
+- **Pattern detection** — pola belanja (malam hari, spike, streak tabungan, dll.) digabung ke pipeline insight.
+- **Mini simulator** — slider hemat makan / tambah tabungan; pratinjau runway dan dampak ke health score secara realtime di client.
+- **Notifikasi prioritas** — skor numerik per tier (`critical`, `warning`, `suggestion`, `achievement`) untuk urutan stabil.
+- **Metrik turunan dashboard** — burn harian, pace budget aman, velocity vs budget, proyeksi akhir bulan / runway (tersentral di domain finance).
+
+## Deploy
+
+Deploy seperti aplikasi Next.js biasa (mis. [Vercel](https://vercel.com) atau Node adapter). Pastikan `DATABASE_URL` dan migrasi database terset di lingkungan produksi.
+
+## Lisensi
+
+Private project (`"private": true` di `package.json`).
