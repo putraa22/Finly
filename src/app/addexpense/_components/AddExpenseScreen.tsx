@@ -2,12 +2,13 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Check, Sparkles, TrendingUp } from "lucide-react";
+import { Check, Loader2, Sparkles, TrendingUp } from "lucide-react";
 
 import { CATEGORIES, formatIDRFull } from "@/lib/finance";
-import { cn } from "@/lib/utils";
 import { useCountUp } from "@/lib/hooks/useCountUp";
 import { toast } from "@/lib/hooks/use-toast";
+import { cn } from "@/lib/utils";
+import { useExpenseDraftStore } from "@/store/expense-store";
 
 import {
   AI_SUGGEST_CATEGORY_ID,
@@ -16,9 +17,8 @@ import {
   MOCK_DAILY_LIMIT,
   MOCK_FREQUENT_CATEGORY_IDS,
   MOCK_SPENT_TODAY,
-  SUBMIT_REDIRECT_MS,
+  SUCCESS_REDIRECT_MS,
 } from "../addExpense.constants";
-import { useExpenseAmountString } from "../addExpense.hooks";
 import {
   formatIdrDigits,
   getDailySpendSummary,
@@ -33,11 +33,23 @@ import { ExpenseQuickAmountRow } from "./parts/ExpenseQuickAmountRow";
 import { ExpenseSheetHandle } from "./parts/ExpenseSheetHandle";
 import { ExpenseTopBar } from "./parts/ExpenseTopBar";
 
+const SUCCESS_TOAST_CLASS =
+  "border-emerald-500/35 bg-emerald-500/[0.12] shadow-[0_14px_40px_color-mix(in_oklch,var(--primary)_12%,transparent)]";
+
 export function AddExpenseScreen() {
   const router = useRouter();
-  const { numeric, appendKey, bumpBy, clear } = useExpenseAmountString();
-  const [category, setCategory] = React.useState("food");
-  const [note, setNote] = React.useState("");
+  const numeric = useExpenseDraftStore(
+    (s) => Number(s.amount) || 0,
+  );
+  const appendKey = useExpenseDraftStore((s) => s.appendKey);
+  const bumpBy = useExpenseDraftStore((s) => s.bumpBy);
+  const clearAmount = useExpenseDraftStore((s) => s.clearAmount);
+  const category = useExpenseDraftStore((s) => s.categoryId);
+  const setCategoryId = useExpenseDraftStore((s) => s.setCategoryId);
+  const note = useExpenseDraftStore((s) => s.note);
+  const setNote = useExpenseDraftStore((s) => s.setNote);
+  const resetDraft = useExpenseDraftStore((s) => s.resetDraft);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const animated = useCountUp(numeric, AMOUNT_ANIM_MS);
   const animatedDigits = formatIdrDigits(animated);
@@ -56,7 +68,7 @@ export function AddExpenseScreen() {
   const aiSuggestionLabel =
     CATEGORIES.find((c) => c.id === AI_SUGGEST_CATEGORY_ID)?.label ?? "";
 
-  const submit = () => {
+  const submit = async () => {
     if (numeric <= 0) {
       toast({
         title: "Masukkan jumlah dulu ya",
@@ -64,14 +76,64 @@ export function AddExpenseScreen() {
       });
       return;
     }
-    toast({
-      title: `Tercatat: ${formatIDRFull(numeric)} • ${selectedCategory.label}`,
-    });
-    window.setTimeout(() => router.push("/dashboard"), SUBMIT_REDIRECT_MS);
+
+    const submittedAmount = numeric;
+    const submittedCategoryLabel = selectedCategory.label;
+
+    setIsSubmitting(true);
+    let succeeded = false;
+
+    try {
+      const res = await fetch("/api/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: numeric,
+          category,
+          note: note.trim() || undefined,
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { message?: string };
+
+      if (!res.ok) {
+        toast({
+          title: data.message ?? "Gagal menyimpan transaksi",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      succeeded = true;
+
+      resetDraft();
+
+      toast({
+        title: `Tercatat: ${formatIDRFull(submittedAmount)} • ${submittedCategoryLabel}`,
+        description: "Transaksi tersimpan. Mengarahkan ke dashboard…",
+        className: SUCCESS_TOAST_CLASS,
+      });
+
+      window.setTimeout(() => {
+        setIsSubmitting(false);
+        router.push("/dashboard");
+      }, SUCCESS_REDIRECT_MS);
+    } catch {
+      toast({
+        title: "Tidak terhubung",
+        description: "Periksa koneksi lalu coba lagi.",
+        variant: "destructive",
+      });
+    } finally {
+      if (!succeeded) {
+        setIsSubmitting(false);
+      }
+    }
   };
 
   const ctaLabel =
     CTA_LABEL_BY_CATEGORY[category] ?? CTA_LABEL_BY_CATEGORY.other;
+
+  const controlsLocked = isSubmitting;
 
   return (
     <div className="animate-in fade-in-0 slide-in-from-bottom-4 duration-300 fill-mode-both">
@@ -80,7 +142,11 @@ export function AddExpenseScreen() {
 
       <div className="px-5 pt-4">
         <ExpenseAmountHeroCard animatedDigits={animatedDigits} summary={summary} />
-        <ExpenseQuickAmountRow onPick={(n) => bumpBy(n)} onReset={clear} />
+        <ExpenseQuickAmountRow
+          onPick={(n) => bumpBy(n)}
+          onReset={clearAmount}
+          disabled={controlsLocked}
+        />
       </div>
 
       <section className="mt-6 px-5">
@@ -97,7 +163,8 @@ export function AddExpenseScreen() {
         <ExpenseCategoryPicker
           categories={sortedCategories}
           selectedId={category}
-          onSelect={setCategory}
+          onSelect={setCategoryId}
+          disabled={controlsLocked}
         />
         <ExpenseCoachPanel key={category} categoryId={category} />
 
@@ -105,33 +172,40 @@ export function AddExpenseScreen() {
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="Tambah catatan singkat (opsional)"
-          className="mt-3 w-full rounded-2xl border border-border bg-card px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+          disabled={controlsLocked}
+          className="mt-3 w-full rounded-2xl border border-border bg-card px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:cursor-not-allowed disabled:opacity-60"
         />
       </section>
 
       <section className="mt-5 px-5 pb-6">
-        <ExpenseNumpadGrid onKey={appendKey} />
+        <ExpenseNumpadGrid onKey={appendKey} disabled={controlsLocked} />
 
         <button
           type="button"
           onClick={submit}
-          disabled={numeric <= 0}
+          aria-busy={isSubmitting}
+          disabled={numeric <= 0 || isSubmitting}
           className={cn(
             "mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-semibold transition-all duration-200 ease-out",
-            numeric > 0
+            numeric > 0 && !isSubmitting
               ? "bg-linear-to-br from-primary to-emerald-700 text-primary-foreground shadow-[0_14px_36px_color-mix(in_oklch,var(--primary)_38%,transparent)] active:scale-[0.98]"
               : "bg-muted text-muted-foreground",
           )}
         >
-          {numeric > 0 ? (
+          {isSubmitting ? (
             <>
-              <Check className="size-5" aria-hidden />
-              {ctaLabel}
+              <Loader2 className="size-5 animate-spin" aria-hidden />
+              Menyimpan…
             </>
-          ) : (
+          ) : numeric <= 0 ? (
             <>
               <TrendingUp className="size-5" aria-hidden />
               Masukkan jumlah dulu
+            </>
+          ) : (
+            <>
+              <Check className="size-5" aria-hidden />
+              {ctaLabel}
             </>
           )}
         </button>

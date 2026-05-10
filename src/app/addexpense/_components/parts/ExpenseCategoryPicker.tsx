@@ -14,10 +14,12 @@ export function ExpenseCategoryPicker({
   categories,
   selectedId,
   onSelect,
+  disabled = false,
 }: Readonly<{
   categories: ReturnType<typeof sortCategoriesByFrequency>;
   selectedId: string;
   onSelect: (id: string) => void;
+  disabled?: boolean;
 }>) {
   return (
     <div className="grid grid-cols-4 gap-2.5">
@@ -30,9 +32,10 @@ export function ExpenseCategoryPicker({
           <button
             key={c.id}
             type="button"
+            disabled={disabled}
             onClick={() => onSelect(c.id)}
             className={cn(
-              "relative flex flex-col items-center gap-1.5 rounded-2xl border p-3 transition-all duration-200 ease-out active:scale-[0.96]",
+              "relative flex flex-col items-center gap-1.5 rounded-2xl border p-3 transition-all duration-200 ease-out enabled:active:scale-[0.96] disabled:pointer-events-none disabled:opacity-50",
               active
                 ? "scale-[1.03] border-primary bg-primary/12 shadow-md"
                 : "border-border bg-card hover:border-primary/40",

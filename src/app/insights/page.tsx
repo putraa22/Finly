@@ -1,12 +1,10 @@
-export default function InsightsPage() {
-  return (
-    <div className="mx-auto w-full max-w-md px-4 pb-28 pt-8 sm:max-w-lg md:max-w-xl lg:max-w-5xl">
-      <h1 className="font-heading text-lg font-bold text-foreground">
-        Insights
-      </h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Ringkasan pola pengeluaran — halaman ini bisa kamu lengkapi nanti.
-      </p>
-    </div>
-  );
+import { getDashboardSummary } from "@/lib/dashboard/summary";
+
+import { InsightsClient } from "./InsightsClient";
+
+export const dynamic = "force-dynamic";
+
+export default async function InsightsPage() {
+  const summary = await getDashboardSummary();
+  return <InsightsClient insightsAll={summary.insightsAll} />;
 }

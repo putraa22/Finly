@@ -5,7 +5,9 @@ import { ArrowRight, Sparkles } from "lucide-react";
 
 import { Slider } from "@/components/ui/slider";
 import { formatIDRFull } from "@/lib/finance";
+import { computeMiniSimulator } from "@/lib/simulator/mini-simulator-model";
 import { cn } from "@/lib/utils";
+import { useDashboardUiStore } from "@/store/dashboard-store";
 
 import { CardShell } from "./CardShell";
 
@@ -14,7 +16,10 @@ export type MiniSimulatorProps = Readonly<{
   currentBalance?: number;
   dailyBurn?: number;
   daysLeft?: number;
+  daysInMonth?: number;
   monthlyIncome?: number;
+  /** Share makan terhadap pengeluaran bulan ini (0–1), dari server. */
+  foodShareOfSpend?: number;
   onApply?: () => void;
 }>;
 
@@ -23,29 +28,41 @@ export function MiniSimulator({
   currentBalance = 3_680_000,
   dailyBurn = 205_000,
   daysLeft = 18,
+  daysInMonth = 30,
   monthlyIncome = 9_500_000,
+  foodShareOfSpend = 0.32,
   onApply,
 }: MiniSimulatorProps) {
-  const [foodCut, setFoodCut] = React.useState(20);
-  const [savePlus, setSavePlus] = React.useState(10);
+  const foodCut = useDashboardUiStore((s) => s.simulatorFoodCutPct);
+  const setFoodCut = useDashboardUiStore((s) => s.setSimulatorFoodCutPct);
+  const savePlus = useDashboardUiStore((s) => s.simulatorSavePlusPct);
+  const setSavePlus = useDashboardUiStore((s) => s.setSimulatorSavePlusPct);
   const fillGradientId = `simFill-${React.useId().replace(/:/g, "")}`;
 
   const sim = React.useMemo(() => {
-    const foodShare = 0.32;
-    const newBurn = dailyBurn * (1 - foodShare * (foodCut / 100));
-    const monthlySave = (monthlyIncome * savePlus) / 100;
-    const newDays =
-      newBurn > 0 ? Math.floor(currentBalance / newBurn) : 99;
+    const metrics = computeMiniSimulator({
+      balance: currentBalance,
+      dailyBurn,
+      foodCutPct: foodCut,
+      savePlusPct: savePlus,
+      monthlyIncome,
+      foodShare: foodShareOfSpend,
+      daysInMonth,
+    });
+
+    const newBurn = metrics.newDailyBurn;
     const w = 320;
     const h = 90;
     const steps = 14;
+    const denom = Math.max(currentBalance, 1);
+
     const baseline = Array.from({ length: steps }, (_, i) => {
       const x = (i / (steps - 1)) * w;
       const remaining = Math.max(
         0,
         currentBalance - dailyBurn * (i * (daysLeft / (steps - 1))),
       );
-      const y = h - (remaining / currentBalance) * (h - 10) - 5;
+      const y = h - (remaining / denom) * (h - 10) - 5;
       return `${x},${y}`;
     });
     const projected = Array.from({ length: steps }, (_, i) => {
@@ -54,15 +71,14 @@ export function MiniSimulator({
         0,
         currentBalance - newBurn * (i * (daysLeft / (steps - 1))),
       );
-      const y = h - (remaining / currentBalance) * (h - 10) - 5;
+      const y = h - (remaining / denom) * (h - 10) - 5;
       return `${x},${y}`;
     });
     return {
       baselinePath: `M${baseline.join(" L")}`,
       projectedPath: `M${projected.join(" L")}`,
       area: `M${projected.join(" L")} L${w},${h} L0,${h} Z`,
-      newDays,
-      monthlySave,
+      metrics,
       w,
       h,
     };
@@ -72,10 +88,18 @@ export function MiniSimulator({
     currentBalance,
     dailyBurn,
     daysLeft,
+    daysInMonth,
     monthlyIncome,
+    foodShareOfSpend,
   ]);
 
-  const extraDays = sim.newDays - daysLeft;
+  const { metrics } = sim;
+  const extraDays = metrics.projectedRunwayDays - metrics.baselineRunwayDays;
+
+  const savingsSubtitle =
+    foodCut > 0
+      ? `+${savePlus}% pendapatan · hemat makan ~${formatIDRFull(Math.round(metrics.monthlyFromFood))}`
+      : `+${savePlus}% dari pendapatan dialokasikan menabung`;
 
   return (
     <CardShell className={cn("overflow-hidden p-5", className)}>
@@ -144,14 +168,14 @@ export function MiniSimulator({
       <div className="mt-3 grid grid-cols-2 gap-2">
         <Stat
           label="Saldo bertahan"
-          value={`${sim.newDays} hari`}
+          value={`${metrics.projectedRunwayDays} hari`}
           delta={extraDays > 0 ? `+${extraDays} hari` : `${extraDays} hari`}
           positive={extraDays > 0}
         />
         <Stat
           label="Tabungan bulanan"
-          value={formatIDRFull(sim.monthlySave)}
-          delta={`+${savePlus}%`}
+          value={formatIDRFull(Math.round(metrics.monthlyCombined))}
+          delta={savingsSubtitle}
           positive
         />
       </div>

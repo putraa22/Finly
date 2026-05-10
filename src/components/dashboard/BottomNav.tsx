@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
-import { Home, LineChart, Plus, Sparkles, User } from "lucide-react";
+import { History, Home, LineChart, Plus, User } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -16,9 +16,9 @@ type BottomNavItem = Readonly<{
 
 const items: BottomNavItem[] = [
   { href: "/dashboard", label: "Home", icon: Home },
-  { href: "/insights", label: "Insights", icon: Sparkles },
-  { href: "/addexpense", label: "Add", icon: Plus, primary: true },
   { href: "/future", label: "Future", icon: LineChart },
+  { href: "/addexpense", label: "Add", icon: Plus, primary: true },
+  { href: "/transactions", label: "Riwayat", icon: History },
   { href: "/profile", label: "Profile", icon: User },
 ];
 
