@@ -17,8 +17,8 @@ import {
   TransactionsCard,
   type QuickActionId,
   type SpendingBreakdownItem,
-} from "@/src/components/dashboard";
-import { toast } from "@/src/lib/hooks/use-toast";
+} from "@/components/dashboard";
+import { toast } from "@/lib/hooks/use-toast";
 
 import { QUICK_ACTION_FEEDBACK_COPY } from "./quickAction.copy";
 

@@ -39,7 +39,7 @@ export function BottomNav({
   return (
     <nav
       className={cn(
-        "fixed inset-x-0 bottom-0 z-40 mx-auto max-w-[440px] px-3 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2",
+        "fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-md px-3 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2 sm:max-w-lg md:max-w-xl lg:max-w-5xl",
         className,
       )}
       aria-label="Primary"
